@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Music</title>
+	<script type="text/javascript">
+		(function()
+		{
+			const AC = new (AudioContext || webkitAudioContext)();
+			const volumeController = AC.createGain();
+
+			volumeController.connect(AC.destination);
+			volumeController.gain.value = 0.05;
+
+			const whiteKey = {
+
+			};
+			const blackKey = {
+				"background-color" : "#999",
+				"color" : "#fff"
+			};
+			const notes = [
+				{name: "A", additionalStyles: whiteKey},
+				{name: "A#", additionalStyles: blackKey},
+				{name: "B", additionalStyles: whiteKey},
+				{name: "C", additionalStyles: whiteKey},
+				{name: "C#", additionalStyles: blackKey},
+				{name: "D", additionalStyles: whiteKey},
+				{name: "D#", additionalStyles: blackKey},
+				{name: "E", additionalStyles: whiteKey},
+				{name: "F", additionalStyles: whiteKey},
+				{name: "F#", additionalStyles: blackKey},
+				{name: "G", additionalStyles: whiteKey},
+				{name: "G#", additionalStyles: blackKey},
+			];
+
+			const setNote = function(step){
+				const stepRatio = function(resolution = 1)
+				{
+					return Math.pow(2, 1/(resolution*12));
+				};
+				const baseA = 220;
+				return (Math.pow(stepRatio(), step) * baseA);
+			}
+
+			const playTone = function(type, frequency, duration)
+			{
+				const osc = AC.createOscillator();
+				osc.type = type;
+				osc.frequency.value = frequency;
+				osc.connect(volumeController);
+				osc.start();
+				if(duration)
+					setTimeout(function(){osc.stop();}, duration);
+				return osc;
+			};
+
+			window.onload = function()
+			{
+				const keyboard = document.querySelector("#keyboard tr");
+				const numKeys = 60;
+				let currentOctave = -1;
+				let osc;
+				let oscID = 0;
+				for(let i = 0; i < numKeys; i++)
+				{
+					const key = document.createElement("th");
+					const note = notes[i%12];
+					key.innerText = note.name;
+					console.log(Object.assign(key.style, note.additionalStyles));
+					
+					key.onmousedown = function(e)
+					{
+						if(osc)
+							osc.stop();
+						osc = playTone("square", setNote(i + (12*currentOctave) ));
+						oscID = (oscID+1)%1000;
+						key.style.border = "1px solid #000";	
+					}
+					key.onmouseup = function(e)
+					{
+						const IDtoStop = oscID;
+						setTimeout(function()
+						{
+							if(osc && IDtoStop === oscID)
+							{
+								osc.stop();
+								osc = undefined;
+							}
+						}, 100);
+						key.style.border = "";
+					}
+					key.onmouseover = function(e)
+					{
+						if(e.which === 1)
+						{
+							if(osc)
+								osc.stop();
+							osc = playTone("square", setNote(i + (12*currentOctave)));
+							key.style.border = "1px solid #000";
+							oscID = (oscID+1)%1000;
+						}
+					}
+					key.onmouseout = function()
+					{
+						if(osc)
+						{
+							osc.stop();
+							osc = undefined;
+						}
+						key.style.border = "";
+					}
+
+					keyboard.appendChild(key);
+				}
+
+				document.querySelector("#volumeControl").onchange = function(e)
+				{
+					const val = e.target.value;
+					volumeController.gain.value = parseInt(val)/500;
+				};
+
+				document.querySelector("#octaveUp").onmouseup = function(e)
+				{
+					currentOctave++;
+					console.log(currentOctave)
+				};
+
+				document.querySelector("#octaveDown").onmouseup = function(e)
+				{
+					currentOctave--;
+				};
+			};
+
+		})();
+
+	</script>
+	<style type="text/css">
+		*{
+			font-family: sans-serif;
+		}
+		#keyboard tr th{
+			border: 1px dashed #666;
+			width: 100px;
+			height: 200px;
+			cursor: default;
+			user-select: none;
+		}
+		#octaveButtons button{
+			border: 2px solid #2266ff;
+			background-color: #fff;
+			color: #2266ff;
+			width: 25px;
+		}
+		#octaveButtons button:active{
+			background-color: #2266ff
+		}
+		#octaveUp {
+			border-top-left-radius: 5px;
+			border-bottom-left-radius: 5px;
+		}
+		#octaveDown {
+			border-top-right-radius: 5px;
+			border-bottom-right-radius: 5px;
+		}
+	</style>
+</head>
+<body>
+
+<p><label for="volumeControl">Volume</label></p>
+<input type="range" id="volumeControl" value="25">
+<table id="keyboard"><tr></tr></table><div id="octaveButtons">Octave:<button id="octaveUp">+</button><button id="octaveDown">-</button></div>
+
+</body>
+</html>
