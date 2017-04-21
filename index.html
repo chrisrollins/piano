@@ -16,7 +16,8 @@
 			};
 			const blackKey = {
 				"background-color" : "#999",
-				"color" : "#fff"
+				"color" : "#fff",
+				"border-color" : "#fff"
 			};
 			const notes = [
 				{name: "A", additionalStyles: whiteKey},
@@ -54,19 +55,52 @@
 				return osc;
 			};
 
+			const keys = {};
+			const keyOrder = "1234567890-=qwertyuiop[]asdfghjkl;'zxcvbnm,./";
+			window.onkeydown = function(e)
+			{
+				if(!keys[e.key])
+				{
+					keys[e.key] = {
+						down: false,
+						press: ()=>{},
+						release: ()=>{}
+					};
+				}
+				key = keys[e.key];
+				if(!key.down)
+				{
+					key.down = true;
+					key.press();
+				}
+			};
+
+			window.onkeyup = function(e)
+			{
+				const key = keys[e.key];
+				if(key)
+				{
+					key.down = false;
+					key.release();
+				}
+			};
+
 			window.onload = function()
 			{
 				const keyboard = document.querySelector("#keyboard tr");
-				const numKeys = 60;
 				let currentOctave = -1;
 				let osc;
 				let oscID = 0;
-				for(let i = 0; i < numKeys; i++)
+				for(let i = 0; i < keyOrder.length; i++)
 				{
 					const key = document.createElement("th");
+					const keyInner = document.createElement("div");
 					const note = notes[i%12];
-					key.innerText = note.name;
-					console.log(Object.assign(key.style, note.additionalStyles));
+					const activeBorder = "2px solid #00ff00";
+					keyInner.innerText = note.name;
+					key.appendChild(keyInner);
+					Object.assign(key.style, note.additionalStyles);
+					Object.assign(keyInner.style, {width: "1vw", height: "195px", "text-align": "center", margin: "auto"});
 					
 					key.onmousedown = function(e)
 					{
@@ -74,7 +108,7 @@
 							osc.stop();
 						osc = playTone("square", setNote(i + (12*currentOctave) ));
 						oscID = (oscID+1)%1000;
-						key.style.border = "1px solid #000";	
+						keyInner.style.border = activeBorder;	
 					}
 					key.onmouseup = function(e)
 					{
@@ -89,6 +123,20 @@
 						}, 100);
 						key.style.border = "";
 					}
+					const keyboardKey = keyOrder[i];
+					if(!keys[keyboardKey])
+					{
+						keys[keyboardKey] = {
+							down: false,
+							press: ()=>{},
+							release: ()=>{}
+						};
+					}
+					keys[keyboardKey].press = key.onmousedown;
+					keys[keyboardKey].release = function(){
+						key.onmouseup();
+						keyInner.style.border = "";
+					}
 					key.onmouseover = function(e)
 					{
 						if(e.which === 1)
@@ -96,7 +144,7 @@
 							if(osc)
 								osc.stop();
 							osc = playTone("square", setNote(i + (12*currentOctave)));
-							key.style.border = "1px solid #000";
+							keyInner.style.border = activeBorder;
 							oscID = (oscID+1)%1000;
 						}
 					}
@@ -107,7 +155,7 @@
 							osc.stop();
 							osc = undefined;
 						}
-						key.style.border = "";
+						keyInner.style.border = "";
 					}
 
 					keyboard.appendChild(key);
@@ -138,12 +186,16 @@
 		*{
 			font-family: sans-serif;
 		}
+		#keyboard{
+			margin-top: 7vw;
+		}
 		#keyboard tr th{
 			border: 1px dashed #666;
-			width: 100px;
+			min-width: 1.25vw;
 			height: 200px;
 			cursor: default;
 			user-select: none;
+			font-size: 0.7em;
 		}
 		#octaveButtons button{
 			border: 2px solid #2266ff;
@@ -166,9 +218,11 @@
 </head>
 <body>
 
-<p><label for="volumeControl">Volume</label></p>
-<input type="range" id="volumeControl" value="25">
-<table id="keyboard"><tr></tr></table><div id="octaveButtons">Octave:<button id="octaveUp">+</button><button id="octaveDown">-</button></div>
+<div style="margin-left: 2vw;">
+<table id="keyboard"><tr></tr></table><div id="octaveButtons">
+<label for="volumeControl">Volume</label><input type="range" id="volumeControl" value="25"><br>
+Octave:<button id="octaveUp">+</button><button id="octaveDown">-</button>
+</div>
 
 </body>
 </html>
